@@ -1,0 +1,9 @@
+streamlit
+akshare
+backtesting
+pandas
+pandas-ta
+pyarrow
+openai
+python-dotenv
+plotly
