@@ -8,3 +8,4 @@ openai==2.38.0
 pydantic==2.13.4
 python-dotenv==1.2.2
 plotly==6.7.0
+pytest==9.0.3
