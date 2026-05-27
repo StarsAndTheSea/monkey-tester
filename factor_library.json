@@ -1,0 +1,19 @@
+{
+  "factors": [
+    {
+      "id": "Limit-up",
+      "name": "Limit-up",
+      "description": "",
+      "conditions": [
+        {
+          "metric": "consecutive_limit_ups",
+          "operator": ">=",
+          "value": 1.0,
+          "window": null,
+          "timeframe": "1d"
+        }
+      ]
+    }
+  ],
+  "groups": []
+}

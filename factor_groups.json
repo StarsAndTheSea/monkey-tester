@@ -1,0 +1,22 @@
+[
+  {
+    "id": "grp_689a71b3",
+    "name": "Group 1",
+    "capital": 50000.0,
+    "holding_period": null,
+    "entry_conds": [
+      {
+        "metric": "consecutive_limit_ups",
+        "operator": ">=",
+        "value": 1.0
+      }
+    ],
+    "exit_conds": [
+      {
+        "metric": "turnover_rate",
+        "operator": ">=",
+        "value": 20.0
+      }
+    ]
+  }
+]
