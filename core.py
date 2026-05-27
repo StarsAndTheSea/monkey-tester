@@ -161,12 +161,14 @@ class MarketDataProvider(ABC):
 
     @abstractmethod
     def get_daily_history(
-        self, symbol: str, start: str, end: str, adjust: str = "hfq"
+        self, symbol: str, start: str, end: str, adjust: str = "hfq",
+        cache_only: bool = False,
     ) -> pd.DataFrame | None:
         """Return daily OHLCV + pct_change + turnover_rate for one symbol.
 
         Columns: date (str YYYY-MM-DD), open, high, close, low, volume,
                  pct_change (%), turnover_rate (%).
+        cache_only=True: return cached data only, never trigger a live fetch.
         Returns None on failure — never raises to the caller.
         """
 
@@ -428,13 +430,17 @@ def run_screen(spec: SignalSpec, provider: MarketDataProvider) -> pd.DataFrame:
         return pd.DataFrame()
 
     end   = pd.Timestamp.today().strftime("%Y-%m-%d")
-    start = (pd.Timestamp.today() - pd.Timedelta(days=30)).strftime("%Y-%m-%d")
+    # 60 days covers ~42 trading days — enough warmup for all standard 20-bar indicators
+    start = (pd.Timestamp.today() - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
 
     matches = []
     for sym in symbols:
         df = provider.get_daily_history(sym, start=start, end=end, cache_only=True)
         if df is None or df.empty:
             continue
+
+        from indicators import add_indicators  # lazy import avoids circular dependency
+        df = add_indicators(df, sym)
 
         mask = translate(spec, df)
         if not mask.iloc[-1]:   # only the latest bar counts for a screen
@@ -551,6 +557,9 @@ def run_backtest(
     if len(df) < 20:
         print(f"[backtest] {symbol} has only {len(df)} bars — too few to backtest")
         return None
+
+    from indicators import add_indicators  # lazy import avoids circular dependency
+    df = add_indicators(df, symbol)
 
     # --- Precompute entry and exit boolean arrays via the translator ---
     # We evaluate conditions over the full DataFrame once here, then pass the
