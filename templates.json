@@ -1,0 +1,111 @@
+[
+  {
+    "id": "t1_momentum_entry",
+    "name": "T1 · Momentum / Rumor Entry",
+    "description": "Enter on two or more consecutive limit-ups with elevated turnover. Exit when the 5-day average turnover exceeds 20% (sustained flush signal) or after 4 bars, whichever comes first.",
+    "rationale": "Two consecutive limit-ups indicates strong, sustained demand pressure — institutional accumulation or speculative momentum. The 5-day average turnover exit waits for supply to overwhelm demand rather than reacting to a single spike, aiming to stay in the move longer. Run this against your GCL case-study symbol to see whether the rule generalises.",
+    "status": "unvalidated",
+    "spec": {
+      "mode": "backtest",
+      "market": "CN",
+      "universe": ["600519"],
+      "conditions": [],
+      "logic": "AND",
+      "entry": [
+        {"metric": "consecutive_limit_ups", "operator": ">=", "value": 2},
+        {"metric": "turnover_rate",          "operator": ">=", "value": 10.0}
+      ],
+      "exit": [
+        {"metric": "turnover_rate_5d", "operator": ">", "value": 20.0}
+      ],
+      "holding_period": 4
+    }
+  },
+  {
+    "id": "t1_exit_test",
+    "name": "T1-exit-test · Sell One Day Earlier",
+    "description": "Identical entry to T1 but exits on the first single day that turnover exceeds 30%, rather than waiting for a sustained 5-day average. Tests whether the earlier exit recovers or costs performance.",
+    "rationale": "GCL reflection: did holding through the turnover peak cost more than it gained? Compare P&L and drawdown against T1 directly. If returns are similar but max drawdown is lower with the earlier exit, that is the method insight. A meaningful difference here changes how you set exits on momentum trades.",
+    "status": "unvalidated",
+    "spec": {
+      "mode": "backtest",
+      "market": "CN",
+      "universe": ["600519"],
+      "conditions": [],
+      "logic": "AND",
+      "entry": [
+        {"metric": "consecutive_limit_ups", "operator": ">=", "value": 2},
+        {"metric": "turnover_rate",          "operator": ">=", "value": 10.0}
+      ],
+      "exit": [
+        {"metric": "turnover_rate", "operator": ">", "value": 30.0}
+      ],
+      "holding_period": 4
+    }
+  },
+  {
+    "id": "t2_macro_thesis",
+    "name": "T2 · Macro-Thesis Entry with Time-Stop",
+    "description": "Enter when volume surges to 3× the 20-day average — early sign of institutional positioning. Exit on any sharp negative open gap (gap_open_pct < -3%) or after 5 bars, whichever fires first.",
+    "rationale": "North Copper setup: you saw the macro thesis and entered on volume confirmation of institutional interest. The gap-down exit catches overnight rejection of the move before the day session compounds the loss. The 5-day hard stop prevents thesis overstay when the catalyst fades quietly. Replace universe with your North Copper symbol.",
+    "status": "unvalidated",
+    "spec": {
+      "mode": "backtest",
+      "market": "CN",
+      "universe": ["600519"],
+      "conditions": [],
+      "logic": "AND",
+      "entry": [
+        {"metric": "volume_vs_avg20", "operator": ">=", "value": 3.0}
+      ],
+      "exit": [
+        {"metric": "gap_open_pct", "operator": "<", "value": -3.0}
+      ],
+      "holding_period": 5
+    }
+  },
+  {
+    "id": "t3_stealth_accumulation",
+    "name": "T3 · Stealth-Accumulation Screen",
+    "description": "Screen for stocks with recent dormancy (low 5-day average turnover) that break out on a limit-up with abnormal volume and a compressed price range. Surfaces candidates for manual review — not a buy signal.",
+    "rationale": "Yabo pattern: institutional accumulation leaves a footprint on a previously quiet stock — a sudden limit-up on volume 3× normal, with a range that was coiling before the move. The low turnover_rate_5d filter screens out stocks that were already active. Each result needs chart, float, and news review before acting.",
+    "status": "unvalidated",
+    "spec": {
+      "mode": "screen",
+      "market": "CN",
+      "universe": "csi300",
+      "conditions": [
+        {"metric": "pct_change",         "operator": ">=", "value": 9.9},
+        {"metric": "volume_vs_avg20",    "operator": ">=", "value": 3.0},
+        {"metric": "range_compression20","operator": "<",  "value": 0.7},
+        {"metric": "turnover_rate_5d",   "operator": "<",  "value": 5.0}
+      ],
+      "logic": "AND"
+    }
+  },
+  {
+    "id": "t3_exit_test",
+    "name": "T3-exit-test · False-Breakdown Filter",
+    "description": "Stealth-accumulation entry (same as T3) but exits only when a sharp down-open is confirmed by above-average volume. Low-volume down-opens are treated as shakeouts and ignored.",
+    "rationale": "Yabo reflection: a low-volume down-open triggered an early exit that left 25% on the table. This template tests whether requiring volume confirmation (volume_vs_avg20 > 1.5) on the exit signal recovers that missed upside without meaningfully increasing max drawdown. Compare directly against a bare gap_open_pct < -3 exit to measure the difference.",
+    "status": "unvalidated",
+    "spec": {
+      "mode": "backtest",
+      "market": "CN",
+      "universe": ["600519"],
+      "conditions": [],
+      "logic": "AND",
+      "entry": [
+        {"metric": "pct_change",         "operator": ">=", "value": 9.9},
+        {"metric": "volume_vs_avg20",    "operator": ">=", "value": 3.0},
+        {"metric": "range_compression20","operator": "<",  "value": 0.7},
+        {"metric": "turnover_rate_5d",   "operator": "<",  "value": 5.0}
+      ],
+      "exit": [
+        {"metric": "gap_open_pct",    "operator": "<", "value": -3.0},
+        {"metric": "volume_vs_avg20", "operator": ">", "value": 1.5}
+      ],
+      "holding_period": 10
+    }
+  }
+]
