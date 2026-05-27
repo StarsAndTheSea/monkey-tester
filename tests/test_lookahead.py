@@ -15,6 +15,10 @@ import pandas as pd
 import pytest
 
 from core import Condition, SignalSpec, translate
+from indicators import (
+    consecutive_limit_ups, turnover_rate_nd, volume_vs_avg,
+    range_compression, gap_open_pct, days_since_limit_up,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -175,3 +179,45 @@ def test_volume_vs_avg(df):
         return translate(spec, d)
 
     assert not _has_lookahead(signal_fn, df)
+
+
+# ---------------------------------------------------------------------------
+# Indicator lookahead tests (Phase 2 Step 8)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def df_with_lu(df):
+    """df fixture with a few forced limit-up bars for LU-based indicators."""
+    d = df.copy()
+    d.loc[d.index[10], "pct_change"] = 10.0   # bar 10: limit-up
+    d.loc[d.index[11], "pct_change"] = 10.0   # bar 11: second consecutive LU
+    d.loc[d.index[30], "pct_change"] = 10.0   # bar 30: isolated LU
+    return d
+
+
+def test_consecutive_limit_ups_no_lookahead(df_with_lu):
+    assert not _has_lookahead(
+        lambda d: consecutive_limit_ups(d, "600519"), df_with_lu
+    )
+
+
+def test_turnover_rate_nd_no_lookahead(df):
+    assert not _has_lookahead(lambda d: turnover_rate_nd(d, n=5), df)
+
+
+def test_volume_vs_avg_no_lookahead(df):
+    assert not _has_lookahead(lambda d: volume_vs_avg(d, n=20), df)
+
+
+def test_range_compression_no_lookahead(df):
+    assert not _has_lookahead(lambda d: range_compression(d, n=20), df)
+
+
+def test_gap_open_pct_no_lookahead(df):
+    assert not _has_lookahead(gap_open_pct, df)
+
+
+def test_days_since_limit_up_no_lookahead(df_with_lu):
+    assert not _has_lookahead(
+        lambda d: days_since_limit_up(d, "600519"), df_with_lu
+    )
