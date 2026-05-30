@@ -16,16 +16,18 @@ CACHE_DIR = Path(__file__).parent / "cache"
 # ---------------------------------------------------------------------------
 
 VALID_OPERATORS = {">", ">=", "<", "<=", "==", "crosses_above", "crosses_below"}
-VALID_MODES     = {"screen", "backtest"}
-VALID_MARKETS   = {"CN", "US"}
-VALID_LOGIC     = {"AND", "OR"}
+VALID_MODES = {"screen", "backtest"}
+VALID_MARKETS = {"CN", "US"}
+VALID_LOGIC = {"AND", "OR"}
 
 
 class Condition(BaseModel):
-    metric:    str
-    operator:  str
-    value:     Union[float, str]   # threshold (float) or metric name for cross comparisons (str)
-    window:    Union[int, None] = None   # lookback period in days where relevant
+    metric: str
+    operator: str
+    value: Union[
+        float, str
+    ]  # threshold (float) or metric name for cross comparisons (str)
+    window: Union[int, None] = None  # lookback period in days where relevant
     timeframe: str = "1d"
 
     @field_validator("operator")
@@ -37,17 +39,19 @@ class Condition(BaseModel):
 
 
 class SignalSpec(BaseModel):
-    mode:     str                        # "screen" or "backtest"
-    market:   str                        # "CN" or "US"
-    universe: Union[str, list[str]]      # "all_a_shares", "csi300", or explicit ticker list
-    conditions: list[Condition]          # used for screen mode; also as fallback if entry absent
-    logic:    str = "AND"                # how conditions combine: "AND" or "OR"
+    mode: str  # "screen" or "backtest"
+    market: str  # "CN" or "US"
+    universe: Union[str, list[str]]  # "all_a_shares", "csi300", or explicit ticker list
+    conditions: list[
+        Condition
+    ]  # used for screen mode; also as fallback if entry absent
+    logic: str = "AND"  # how conditions combine: "AND" or "OR"
 
     # backtest-only fields
-    entry:          Union[list[Condition], None] = None
-    exit:           Union[list[Condition], None] = None
-    holding_period: Union[int, None] = None    # max bars to hold
-    date_range:     Union[tuple[str, str], None] = None
+    entry: Union[list[Condition], None] = None
+    exit: Union[list[Condition], None] = None
+    holding_period: Union[int, None] = None  # max bars to hold
+    date_range: Union[tuple[str, str], None] = None
 
     @field_validator("mode")
     @classmethod
@@ -75,6 +79,7 @@ class SignalSpec(BaseModel):
 # Spec → engine translator
 # ---------------------------------------------------------------------------
 
+
 def _evaluate_condition(cond: Condition, df: pd.DataFrame) -> pd.Series:
     """Evaluate one Condition against a DataFrame, returning a boolean Series.
 
@@ -84,7 +89,9 @@ def _evaluate_condition(cond: Condition, df: pd.DataFrame) -> pd.Series:
     (see indicators section below); no changes needed here.
     """
     if cond.metric not in df.columns:
-        print(f"[translator] metric {cond.metric!r} not in DataFrame — condition always False")
+        print(
+            f"[translator] metric {cond.metric!r} not in DataFrame — condition always False"
+        )
         return pd.Series(False, index=df.index)
 
     lhs = df[cond.metric]
@@ -92,18 +99,25 @@ def _evaluate_condition(cond: Condition, df: pd.DataFrame) -> pd.Series:
     # Right-hand side: numeric threshold or another column name
     if isinstance(cond.value, str):
         if cond.value not in df.columns:
-            print(f"[translator] value column {cond.value!r} not in DataFrame — condition always False")
+            print(
+                f"[translator] value column {cond.value!r} not in DataFrame — condition always False"
+            )
             return pd.Series(False, index=df.index)
         rhs = df[cond.value]
     else:
         rhs = cond.value
 
     op = cond.operator
-    if op == ">":           mask = lhs > rhs
-    elif op == ">=":        mask = lhs >= rhs
-    elif op == "<":         mask = lhs < rhs
-    elif op == "<=":        mask = lhs <= rhs
-    elif op == "==":        mask = lhs == rhs
+    if op == ">":
+        mask = lhs > rhs
+    elif op == ">=":
+        mask = lhs >= rhs  # noqa: E701
+    elif op == "<":
+        mask = lhs < rhs  # noqa: E701
+    elif op == "<=":
+        mask = lhs <= rhs  # noqa: E701
+    elif op == "==":
+        mask = lhs == rhs  # noqa: E701
     elif op in ("crosses_above", "crosses_below"):
         prev_lhs = lhs.shift(1)
         prev_rhs = rhs.shift(1) if isinstance(rhs, pd.Series) else rhs
@@ -139,9 +153,7 @@ def translate(spec: SignalSpec, df: pd.DataFrame) -> pd.Series:
     compute them via the indicators functions before calling translate().
     """
     conditions = (
-        spec.entry
-        if spec.mode == "backtest" and spec.entry
-        else spec.conditions
+        spec.entry if spec.mode == "backtest" and spec.entry else spec.conditions
     )
 
     if not conditions:
@@ -155,13 +167,18 @@ def translate(spec: SignalSpec, df: pd.DataFrame) -> pd.Series:
 # Provider abstraction
 # ---------------------------------------------------------------------------
 
+
 class MarketDataProvider(ABC):
     """Abstract base — every market provider must implement these three methods
     and return DataFrames with the normalized English column set."""
 
     @abstractmethod
     def get_daily_history(
-        self, symbol: str, start: str, end: str, adjust: str = "hfq",
+        self,
+        symbol: str,
+        start: str,
+        end: str,
+        adjust: str = "hfq",
         cache_only: bool = False,
     ) -> pd.DataFrame | None:
         """Return daily OHLCV + pct_change + turnover_rate for one symbol.
@@ -197,7 +214,16 @@ _CN_COLUMN_MAP = {
     "换手率": "turnover_rate",
 }
 
-_NORMALIZED_COLS = ["date", "open", "high", "close", "low", "volume", "pct_change", "turnover_rate"]
+_NORMALIZED_COLS = [
+    "date",
+    "open",
+    "high",
+    "close",
+    "low",
+    "volume",
+    "pct_change",
+    "turnover_rate",
+]
 
 
 class AKShareCNProvider(MarketDataProvider):
@@ -213,13 +239,19 @@ class AKShareCNProvider(MarketDataProvider):
     """
 
     def get_daily_history(
-        self, symbol: str, start: str, end: str, adjust: str = "hfq",
+        self,
+        symbol: str,
+        start: str,
+        end: str,
+        adjust: str = "hfq",
         cache_only: bool = False,
     ) -> pd.DataFrame | None:
         today = pd.Timestamp.today().strftime("%Y-%m-%d")
 
         # Raw data is always the source of truth for pct_change/turnover_rate
-        raw = self._get_or_fetch(symbol, start, end, adjust="", today=today, cache_only=cache_only)
+        raw = self._get_or_fetch(
+            symbol, start, end, adjust="", today=today, cache_only=cache_only
+        )
         if raw is None or raw.empty:
             return None
 
@@ -227,12 +259,20 @@ class AKShareCNProvider(MarketDataProvider):
             return raw
 
         # For adjusted prices, fetch hfq OHLCV and swap in raw signal metrics
-        hfq = self._get_or_fetch(symbol, start, end, adjust=adjust, today=today, cache_only=cache_only)
+        hfq = self._get_or_fetch(
+            symbol, start, end, adjust=adjust, today=today, cache_only=cache_only
+        )
         if hfq is None or hfq.empty:
             return raw
 
-        ohlcv = [c for c in ["date", "open", "high", "close", "low", "volume"] if c in hfq.columns]
-        signals = [c for c in ["date", "pct_change", "turnover_rate"] if c in raw.columns]
+        ohlcv = [
+            c
+            for c in ["date", "open", "high", "close", "low", "volume"]
+            if c in hfq.columns
+        ]
+        signals = [
+            c for c in ["date", "pct_change", "turnover_rate"] if c in raw.columns
+        ]
         result = hfq[ohlcv].merge(raw[signals], on="date", how="left")
         return result.sort_values("date").reset_index(drop=True)
 
@@ -265,7 +305,12 @@ class AKShareCNProvider(MarketDataProvider):
     # --- private helpers ---
 
     def _get_or_fetch(
-        self, symbol: str, start: str, end: str, adjust: str, today: str,
+        self,
+        symbol: str,
+        start: str,
+        end: str,
+        adjust: str,
+        today: str,
         cache_only: bool = False,
     ) -> pd.DataFrame | None:
         """Load from cache, fetching missing ranges from AKShare unless cache_only=True.
@@ -284,9 +329,9 @@ class AKShareCNProvider(MarketDataProvider):
 
         if cached is not None:
             cached_start = cached["date"].min()
-            cached_end   = cached["date"].max()
+            cached_end = cached["date"].max()
             needs_before = start < cached_start
-            needs_after  = cached_end < end
+            needs_after = cached_end < end
 
             if not needs_before and not needs_after:
                 return self._filter(cached, start, end)
@@ -296,12 +341,16 @@ class AKShareCNProvider(MarketDataProvider):
 
             pieces = [cached]
             if needs_before:
-                old_end = (pd.Timestamp(cached_start) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+                old_end = (pd.Timestamp(cached_start) - pd.Timedelta(days=1)).strftime(
+                    "%Y-%m-%d"
+                )
                 old = self._fetch(symbol, start, old_end, adjust)
                 if old is not None and not old.empty:
                     pieces.insert(0, old)
             if needs_after:
-                new_start = (pd.Timestamp(cached_end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+                new_start = (pd.Timestamp(cached_end) + pd.Timedelta(days=1)).strftime(
+                    "%Y-%m-%d"
+                )
                 new = self._fetch(symbol, new_start, end, adjust)
                 if new is not None and not new.empty:
                     pieces.append(new)
@@ -325,7 +374,9 @@ class AKShareCNProvider(MarketDataProvider):
         self._save_cache(df, symbol, adjust)
         return df
 
-    def _fetch(self, symbol: str, start: str, end: str, adjust: str) -> pd.DataFrame | None:
+    def _fetch(
+        self, symbol: str, start: str, end: str, adjust: str
+    ) -> pd.DataFrame | None:
         """Try EastMoney first; fall back to Tencent if that fails."""
         try:
             df = ak.stock_zh_a_hist(
@@ -342,11 +393,15 @@ class AKShareCNProvider(MarketDataProvider):
                 keep = [c for c in _NORMALIZED_COLS if c in df.columns]
                 return df[keep].sort_values("date").reset_index(drop=True)
         except Exception as e:
-            print(f"[AKShare/EM] EastMoney unavailable for {symbol}: {e} — trying Tencent fallback")
+            print(
+                f"[AKShare/EM] EastMoney unavailable for {symbol}: {e} — trying Tencent fallback"
+            )
 
         return self._fetch_tx(symbol, start, end, adjust)
 
-    def _fetch_tx(self, symbol: str, start: str, end: str, adjust: str) -> pd.DataFrame | None:
+    def _fetch_tx(
+        self, symbol: str, start: str, end: str, adjust: str
+    ) -> pd.DataFrame | None:
         """Tencent Finance fallback (proxy.finance.qq.com).
 
         Returns OHLC + computed pct_change. Volume and turnover_rate will be
@@ -374,7 +429,9 @@ class AKShareCNProvider(MarketDataProvider):
         df["volume"] = float("nan")
         df["turnover_rate"] = float("nan")
 
-        print(f"[AKShare/TX] fetched {symbol} via Tencent — volume/turnover_rate unavailable")
+        print(
+            f"[AKShare/TX] fetched {symbol} via Tencent — volume/turnover_rate unavailable"
+        )
         keep = [c for c in _NORMALIZED_COLS if c in df.columns]
         return df[keep].sort_values("date").reset_index(drop=True)
 
@@ -403,6 +460,7 @@ class AKShareCNProvider(MarketDataProvider):
 # Cache warming
 # ---------------------------------------------------------------------------
 
+
 def warm_cache(
     symbols: list[str],
     start: str = "2022-01-01",
@@ -426,7 +484,10 @@ def warm_cache(
 # Screening  (Phase 2 Step 3)
 # ---------------------------------------------------------------------------
 
-def _resolve_universe(universe: Union[str, list[str]], provider: MarketDataProvider) -> list[str]:
+
+def _resolve_universe(
+    universe: Union[str, list[str]], provider: MarketDataProvider
+) -> list[str]:
     """Convert a universe spec to a flat list of symbol strings."""
     if isinstance(universe, list):
         return universe
@@ -439,7 +500,9 @@ def _resolve_universe(universe: Union[str, list[str]], provider: MarketDataProvi
             return []
     if universe == "all_a_shares":
         return provider.list_symbols("CN")
-    print(f"[screen] unknown universe {universe!r} — pass a list of symbols or 'csi300' / 'all_a_shares'")
+    print(
+        f"[screen] unknown universe {universe!r} — pass a list of symbols or 'csi300' / 'all_a_shares'"
+    )
     return []
 
 
@@ -460,7 +523,7 @@ def run_screen(spec: SignalSpec, provider: MarketDataProvider) -> pd.DataFrame:
         print("[screen] no symbols resolved from universe")
         return pd.DataFrame()
 
-    end   = pd.Timestamp.today().strftime("%Y-%m-%d")
+    end = pd.Timestamp.today().strftime("%Y-%m-%d")
     # 60 days covers ~42 trading days — enough warmup for all standard 20-bar indicators
     start = (pd.Timestamp.today() - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
 
@@ -471,10 +534,11 @@ def run_screen(spec: SignalSpec, provider: MarketDataProvider) -> pd.DataFrame:
             continue
 
         from indicators import add_indicators  # lazy import avoids circular dependency
+
         df = add_indicators(df, sym)
 
         mask = translate(spec, df)
-        if not mask.iloc[-1]:   # only the latest bar counts for a screen
+        if not mask.iloc[-1]:  # only the latest bar counts for a screen
             continue
 
         row = df.iloc[-1].to_dict()
@@ -486,11 +550,13 @@ def run_screen(spec: SignalSpec, provider: MarketDataProvider) -> pd.DataFrame:
 
     result = pd.DataFrame(matches)
     front = [c for c in ["symbol", "date"] if c in result.columns]
-    rest  = [c for c in result.columns if c not in front]
+    rest = [c for c in result.columns if c not in front]
     result = result[front + rest].reset_index(drop=True)
 
     if "pct_change" in result.columns:
-        result = result.sort_values("pct_change", ascending=False).reset_index(drop=True)
+        result = result.sort_values("pct_change", ascending=False).reset_index(
+            drop=True
+        )
 
     return result
 
@@ -507,6 +573,7 @@ def run_screen(spec: SignalSpec, provider: MarketDataProvider) -> pd.DataFrame:
 #
 # Thresholds use 0.1 pp of headroom (9.9 / 19.9 / 4.9) so a stock that closes
 # exactly at the limit is caught robustly even with minor float rounding.
+
 
 def classify_board(symbol: str) -> str:
     """Return the exchange board for a CN A-share symbol.
@@ -551,14 +618,14 @@ def limit_down_pct(symbol: str, is_st: bool = False) -> float:
 #   Stamp duty (0.05%, sell-only) is absorbed into the per-side rate.
 #   Round-trip cost ≈ 0.2%, which matches realistic retail A-share trading.
 _DEFAULT_COMMISSION = 0.001
-_DEFAULT_CASH       = 1_000_000   # CNY; keeps position sizing reasonable on A-share prices
+_DEFAULT_CASH = 1_000_000  # CNY; keeps position sizing reasonable on A-share prices
 
 
 def run_backtest(
-    spec:     SignalSpec,
-    symbol:   str,
+    spec: SignalSpec,
+    symbol: str,
     provider: MarketDataProvider,
-    cash:       float = _DEFAULT_CASH,
+    cash: float = _DEFAULT_CASH,
     commission: float = _DEFAULT_COMMISSION,
 ) -> "pd.Series | None":
     """Run a single-symbol backtest for the given SignalSpec.
@@ -570,7 +637,10 @@ def run_backtest(
     Entry logic:  spec.entry conditions (falls back to spec.conditions if absent).
     Exit logic:   spec.exit conditions OR spec.holding_period — whichever fires first.
     """
-    from backtesting import Backtest, Strategy  # imported here to keep top-level imports light
+    from backtesting import (
+        Backtest,
+        Strategy,
+    )  # imported here to keep top-level imports light
 
     assert spec.mode == "backtest", "run_backtest only accepts mode='backtest'"
 
@@ -578,7 +648,7 @@ def run_backtest(
     if spec.date_range:
         start, end = spec.date_range
     else:
-        end   = pd.Timestamp.today().strftime("%Y-%m-%d")
+        end = pd.Timestamp.today().strftime("%Y-%m-%d")
         start = (pd.Timestamp.today() - pd.Timedelta(days=3 * 365)).strftime("%Y-%m-%d")
 
     df = provider.get_daily_history(symbol, start=start, end=end, adjust="hfq")
@@ -590,6 +660,7 @@ def run_backtest(
         return None
 
     from indicators import add_indicators  # lazy import avoids circular dependency
+
     df = add_indicators(df, symbol)
 
     # --- Precompute entry and exit boolean arrays via the translator ---
@@ -598,16 +669,22 @@ def run_backtest(
 
     entry_conditions = spec.entry if spec.entry else spec.conditions
     _entry_spec = SignalSpec(
-        mode="backtest", market=spec.market, universe=[symbol],
-        conditions=entry_conditions or [], logic=spec.logic,
+        mode="backtest",
+        market=spec.market,
+        universe=[symbol],
+        conditions=entry_conditions or [],
+        logic=spec.logic,
     )
     entry_arr = translate(_entry_spec, df).values
 
     exit_arr = None
     if spec.exit:
         _exit_spec = SignalSpec(
-            mode="backtest", market=spec.market, universe=[symbol],
-            conditions=spec.exit, logic=spec.logic,
+            mode="backtest",
+            market=spec.market,
+            universe=[symbol],
+            conditions=spec.exit,
+            logic=spec.logic,
         )
         exit_arr = translate(_exit_spec, df).values
 
@@ -623,14 +700,16 @@ def run_backtest(
             self._entry_bar = None
 
         def next(self):
-            i = len(self.data) - 1   # 0-based index of the current bar
+            i = len(self.data) - 1  # 0-based index of the current bar
 
             if not self.position:
                 if i < len(entry_arr) and entry_arr[i]:
                     self.buy()
                     self._entry_bar = i
             else:
-                should_exit = bool(exit_arr is not None and i < len(exit_arr) and exit_arr[i])
+                should_exit = bool(
+                    exit_arr is not None and i < len(exit_arr) and exit_arr[i]
+                )
                 if holding and self._entry_bar is not None:
                     if (i - self._entry_bar) >= holding:
                         should_exit = True
@@ -641,20 +720,34 @@ def run_backtest(
     # --- Prepare DataFrame for backtesting.py ---
     # Needs a DatetimeIndex and capitalised OHLCV column names.
     bt_df = (
-        df.rename(columns={"open": "Open", "high": "High", "low": "Low",
-                            "close": "Close", "volume": "Volume"})
+        df.rename(
+            columns={
+                "open": "Open",
+                "high": "High",
+                "low": "Low",
+                "close": "Close",
+                "volume": "Volume",
+            }
+        )
         .set_index(pd.to_datetime(df["date"]))
         .drop(columns=["date"])
     )
 
-    bt = Backtest(bt_df, SpecStrategy, cash=cash, commission=commission,
-                  exclusive_orders=True, finalize_trades=True)
+    bt = Backtest(
+        bt_df,
+        SpecStrategy,
+        cash=cash,
+        commission=commission,
+        exclusive_orders=True,
+        finalize_trades=True,
+    )
     return bt.run()
 
 
 # ---------------------------------------------------------------------------
 # Phase 1 proof-of-concept screen (kept for reference, superseded by run_screen)
 # ---------------------------------------------------------------------------
+
 
 def hardcoded_limit_up_screen(
     symbols: list[str],
@@ -676,15 +769,24 @@ def hardcoded_limit_up_screen(
         if df is None or df.empty:
             continue
         last = df.iloc[-1]
-        if last["pct_change"] >= limit_up_pct(sym) and last["turnover_rate"] > min_turnover:
-            matches.append({
-                "symbol": sym,
-                "date": last["date"],
-                "pct_change": last["pct_change"],
-                "turnover_rate": last["turnover_rate"],
-                "close": last["close"],
-            })
+        if (
+            last["pct_change"] >= limit_up_pct(sym)
+            and last["turnover_rate"] > min_turnover
+        ):
+            matches.append(
+                {
+                    "symbol": sym,
+                    "date": last["date"],
+                    "pct_change": last["pct_change"],
+                    "turnover_rate": last["turnover_rate"],
+                    "close": last["close"],
+                }
+            )
 
-    return pd.DataFrame(matches) if matches else pd.DataFrame(
-        columns=["symbol", "date", "pct_change", "turnover_rate", "close"]
+    return (
+        pd.DataFrame(matches)
+        if matches
+        else pd.DataFrame(
+            columns=["symbol", "date", "pct_change", "turnover_rate", "close"]
+        )
     )
