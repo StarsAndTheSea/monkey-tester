@@ -18,7 +18,7 @@ _NL_AVAILABLE = bool(os.getenv("DEEPSEEK_API_KEY", ""))
 _CACHE_DIR = Path(__file__).parent / "cache"
 _SPECS_DIR = Path(__file__).parent / "specs"
 
-st.set_page_config(page_title="Monkey", layout="wide")
+st.set_page_config(page_title="Monkey Tester", layout="wide")
 
 # ---------------------------------------------------------------------------
 # Static data
@@ -635,8 +635,8 @@ def _on_template_change() -> None:
 # Persistent header
 # ---------------------------------------------------------------------------
 
-st.title("Monkey")
-st.caption("A place to test your thinking, not a black box that thinks for you.")
+st.title("Monkey Tester")
+st.caption("Monkeys are smart")
 st.divider()
 
 # ---------------------------------------------------------------------------
@@ -644,7 +644,7 @@ st.divider()
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    st.header("Monkey")
+    st.header("Monkey Tester")
 
     # Cache management
     st.subheader("Cache")
@@ -1419,7 +1419,7 @@ with _tab2:
 
 st.divider()
 st.caption(
-    "Monkey is a research tool for testing ideas. "
+    "Monkey Tester is a research tool for testing ideas. "
     "Nothing here is financial advice. "
     "Past performance does not predict future results."
 )

@@ -1,4 +1,4 @@
-# Core logic for Monkey.
+# Core logic for Monkey Tester.
 # Everything lives here until a section gets unwieldy, then split into core/ and data/.
 
 from abc import ABC, abstractmethod
@@ -326,7 +326,7 @@ class AKShareCNProvider(MarketDataProvider):
         return df
 
     def _fetch(self, symbol: str, start: str, end: str, adjust: str) -> pd.DataFrame | None:
-        """Single AKShare call — returns normalized DataFrame or None on failure."""
+        """Try EastMoney first; fall back to Tencent if that fails."""
         try:
             df = ak.stock_zh_a_hist(
                 symbol=symbol,
@@ -334,16 +334,47 @@ class AKShareCNProvider(MarketDataProvider):
                 start_date=start.replace("-", ""),
                 end_date=end.replace("-", ""),
                 adjust=adjust,
+                timeout=10,
+            )
+            if df is not None and not df.empty:
+                df = df.rename(columns=_CN_COLUMN_MAP)
+                df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+                keep = [c for c in _NORMALIZED_COLS if c in df.columns]
+                return df[keep].sort_values("date").reset_index(drop=True)
+        except Exception as e:
+            print(f"[AKShare/EM] EastMoney unavailable for {symbol}: {e} — trying Tencent fallback")
+
+        return self._fetch_tx(symbol, start, end, adjust)
+
+    def _fetch_tx(self, symbol: str, start: str, end: str, adjust: str) -> pd.DataFrame | None:
+        """Tencent Finance fallback (proxy.finance.qq.com).
+
+        Returns OHLC + computed pct_change. Volume and turnover_rate will be
+        NaN because the Tencent API does not expose share-count volume.
+        Signals that depend on volume_vs_avg20 or turnover_rate will not fire
+        until the cache is rebuilt via a working EastMoney connection.
+        """
+        prefix = "sh" if symbol.startswith("6") else "sz"
+        try:
+            df = ak.stock_zh_a_hist_tx(
+                symbol=f"{prefix}{symbol}",
+                start_date=start.replace("-", ""),
+                end_date=end.replace("-", ""),
+                adjust=adjust,
             )
         except Exception as e:
-            print(f"[AKShare] data source temporarily unavailable for {symbol}: {e}")
+            print(f"[AKShare/TX] Tencent fallback also failed for {symbol}: {e}")
             return None
 
         if df is None or df.empty:
             return None
 
-        df = df.rename(columns=_CN_COLUMN_MAP)
         df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+        df["pct_change"] = df["close"].pct_change() * 100
+        df["volume"] = float("nan")
+        df["turnover_rate"] = float("nan")
+
+        print(f"[AKShare/TX] fetched {symbol} via Tencent — volume/turnover_rate unavailable")
         keep = [c for c in _NORMALIZED_COLS if c in df.columns]
         return df[keep].sort_values("date").reset_index(drop=True)
 
