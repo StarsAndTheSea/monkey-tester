@@ -77,19 +77,42 @@ Once cached, a symbol is available indefinitely without a VPN.
 
 ## Available metrics
 
+**Volume & turnover**
+
 | Metric | Description |
 |---|---|
-| `pct_change` | Daily price change % |
 | `volume_vs_avg20` | Volume ÷ 20-day average (1.0 = average, 3.0 = 3× average) |
 | `turnover_rate` | Turnover rate % today |
 | `turnover_rate_5d` | Turnover rate % 5-day average |
 | `turnover_rate_10d` | Turnover rate % 10-day average |
+
+**Price structure**
+
+| Metric | Description |
+|---|---|
 | `consecutive_limit_ups` | Number of consecutive limit-up days ending today |
 | `range_compression20` | Today's high-low range ÷ 20-day average range |
 | `gap_open_pct` | Gap open % vs previous close |
-| `days_since_limit_up` | Calendar days since last limit-up day |
-| `close` | Closing price (CNY) |
-| `volume` | Volume in shares |
+| `days_since_limit_up` | Trading bars since last limit-up day |
+
+**Moving averages** — `1` if close is above the MA, `0` if below
+
+| Metric | Description |
+|---|---|
+| `above_ma5` | 5-day moving average |
+| `above_ma10` | 10-day moving average |
+| `above_ma20` | 20-day moving average |
+| `above_ma40` | 40-day moving average (~2 months) |
+| `above_ma120` | 120-day moving average (~6 months) |
+
+**Oscillators** — `1` for golden cross / bullish state, `0` for dead cross / bearish state
+
+| Metric | Description |
+|---|---|
+| `macd_golden` | MACD: DIF > DEA (EMA 12/26/9) |
+| `kdj_golden` | KDJ: K > D (period 9, smoothing 3) |
+| `cci_golden` | CCI(14) > 0 |
+| `rsi_golden` | RSI(14) > 50 |
 
 ---
 

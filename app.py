@@ -29,7 +29,6 @@ _template_by_id = {t["id"]: t for t in _templates}
 
 # All metrics the condition builder exposes
 _METRICS: dict[str, str] = {
-    "pct_change":            "Daily change %",
     "volume_vs_avg20":       "Volume ÷ 20-day avg",
     "turnover_rate":         "Turnover rate % (today)",
     "turnover_rate_5d":      "Turnover rate % (5-day avg)",
@@ -38,8 +37,15 @@ _METRICS: dict[str, str] = {
     "range_compression20":   "Range ÷ 20-day avg range",
     "gap_open_pct":          "Gap open % vs prev close",
     "days_since_limit_up":   "Days since last limit-up",
-    "close":                 "Close price",
-    "volume":                "Volume (shares)",
+    "above_ma5":             "Above MA 5 (1 = yes, 0 = no)",
+    "above_ma10":            "Above MA 10 (1 = yes, 0 = no)",
+    "above_ma20":            "Above MA 20 (1 = yes, 0 = no)",
+    "above_ma40":            "Above MA 40 / 2-month (1 = yes, 0 = no)",
+    "above_ma120":           "Above MA 120 / 6-month (1 = yes, 0 = no)",
+    "macd_golden":           "MACD golden cross (1 = DIF > DEA, 0 = dead)",
+    "kdj_golden":            "KDJ golden cross (1 = K > D, 0 = dead)",
+    "cci_golden":            "CCI signal (1 = CCI > 0, 0 = CCI ≤ 0)",
+    "rsi_golden":            "RSI signal (1 = RSI > 50, 0 = RSI ≤ 50)",
 }
 
 _OPERATORS = [">=", ">", "<=", "<", "=="]
@@ -132,7 +138,7 @@ def _render_condition_builder(section: str, label: str) -> None:
     with c1:
         st.selectbox(
             "Metric", options=list(_METRICS.keys()),
-            format_func=lambda m: f"{m}  —  {_METRICS[m]}",
+            format_func=lambda m: _METRICS[m],
             key=f"_cb_metric_{section}", label_visibility="collapsed",
         )
     with c2:
@@ -152,7 +158,7 @@ def _render_condition_builder(section: str, label: str) -> None:
         for _i, _c in enumerate(_conds):
             _r1, _r2 = st.columns([11, 1])
             with _r1:
-                st.markdown(f"- `{_c['metric']}` **{_c['operator']}** `{_c['value']}`")
+                st.markdown(f"- {_METRICS.get(_c['metric'], _c['metric'])} **{_c['operator']}** `{_c['value']}`")
             with _r2:
                 st.button("×", key=f"_rm_{section}_{_i}",
                           on_click=_do_remove_condition, args=(section, _i))
@@ -229,7 +235,8 @@ def _parse_spec_json(json_str: str) -> tuple[SignalSpec | None, str | None]:
 
 
 def _condition_line(c: Condition) -> str:
-    return f"`{c.metric}` {c.operator} `{c.value}`"
+    label = _METRICS.get(c.metric, c.metric)
+    return f"{label} {c.operator} `{c.value}`"
 
 
 def _render_spec_summary(spec: SignalSpec) -> None:
