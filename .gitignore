@@ -13,6 +13,7 @@ cache/
 # Internal docs (not for repo)
 CLAUDE.md
 SIGNAL_LAB_BUILD_GUIDE.md
+SIGNAL_LAB_MVP*
 
 # Python
 __pycache__/
