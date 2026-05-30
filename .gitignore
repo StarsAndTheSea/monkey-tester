@@ -10,8 +10,9 @@ venv/
 # Cached price data
 cache/
 
-# Documentation (not for repo)
-*.md
+# Internal docs (not for repo)
+CLAUDE.md
+SIGNAL_LAB_BUILD_GUIDE.md
 
 # Python
 __pycache__/
