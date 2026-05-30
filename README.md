@@ -4,6 +4,8 @@ A factor-testing tool for the China A-share market. Build a condition set from s
 
 Results are transparent stats. No black-box signals, no buy/sell recommendations.
 
+I made this app to test out some strategies using historical data of stocks. There are only a few buying and selling indicators for now. If you want more, tell me and I can code it into the app or you can manually code it into indicators.py
+
 > **This is a hypothesis-testing tool, not a stock picker. Not financial advice.**
 
 ---
